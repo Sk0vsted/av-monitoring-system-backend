@@ -1,11 +1,12 @@
 ﻿using System.Net;
 using System.Text.Json;
 using AVMonitoring.Functions.Models;
+using AVMonitoring.Functions.Models.Endpoints;
 using AVMonitoring.Functions.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 
-namespace AVMonitoring.Functions.Functions;
+namespace AVMonitoring.Functions.Functions.Endpoints;
 
 public class CreateEndpoint
 {
@@ -40,9 +41,20 @@ public class CreateEndpoint
 
         var entity = new MonitoredEndpointEntity
         {
+            Name = body.Name,
             Url = body.Url,
+            Method = body.Method ?? "GET",
             IntervalSeconds = body.IntervalSeconds,
-            LastPingUtc = DateTime.SpecifyKind(DateTime.UnixEpoch, DateTimeKind.Utc)
+            CreatedUtc = DateTime.UtcNow,
+
+            LastPingUtc = DateTime.SpecifyKind(DateTime.UnixEpoch, DateTimeKind.Utc),
+
+            HeadersJson = body.Headers != null
+                ? JsonSerializer.Serialize(body.Headers)
+                : null,
+
+            BodyJson = body.Body,
+            AuthHeader = body.AuthHeader
         };
 
         await _repo.AddAsync(entity);

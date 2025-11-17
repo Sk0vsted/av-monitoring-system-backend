@@ -3,7 +3,7 @@ using AVMonitoring.Functions.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 
-namespace AVMonitoring.Functions.Functions;
+namespace AVMonitoring.Functions.Functions.Endpoints;
 
 public class GetEndpoints
 {

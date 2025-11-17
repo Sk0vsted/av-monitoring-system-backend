@@ -1,44 +1,65 @@
-﻿using System.Diagnostics;
+﻿using AVMonitoring.Functions.Models;
+using System.Diagnostics;
 using System.Net.Http;
-using AVMonitoring.Functions.Models;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 namespace AVMonitoring.Functions.Services;
 
 public class HttpPingService : IHttpPingService
 {
-    private readonly HttpClient _http;
+    private readonly HttpClient _client;
 
-    public HttpPingService(IHttpClientFactory httpFactory)
+    public HttpPingService(IHttpClientFactory factory)
     {
-        _http = httpFactory.CreateClient("MonitoringHttpClient");
+        _client = factory.CreateClient("MonitoringHttpClient");
     }
 
-    public async Task<PingResult> PingAsync(string url)
+    public async Task<PingResult> PingAsync(MonitoredEndpointEntity ep)
     {
-        var watch = Stopwatch.StartNew();
-        int status = 0;
-        string? error = null;
+        var request = new HttpRequestMessage(new HttpMethod(ep.Method), ep.Url);
+
+        // Headers
+        if (!string.IsNullOrWhiteSpace(ep.HeadersJson))
+        {
+            var headers = JsonSerializer.Deserialize<Dictionary<string, string>>(ep.HeadersJson);
+            foreach (var h in headers)
+                request.Headers.TryAddWithoutValidation(h.Key, h.Value);
+        }
+
+        // Auth
+        if (!string.IsNullOrWhiteSpace(ep.AuthHeader))
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ep.AuthHeader);
+
+        // Body
+        if (!string.IsNullOrWhiteSpace(ep.BodyJson))
+            request.Content = new StringContent(ep.BodyJson, Encoding.UTF8, "application/json");
+
+        var sw = Stopwatch.StartNew();
 
         try
         {
-            var response = await _http.GetAsync(url);
-            status = (int)response.StatusCode;
+            var response = await _client.SendAsync(request);
+
+            sw.Stop();
+            return new PingResult
+            {
+                StatusCode = (int)response.StatusCode,
+                ResponseTimeMs = (int)sw.ElapsedMilliseconds,
+                IsError = !response.IsSuccessStatusCode
+            };
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            sw.Stop();
+            return new PingResult
+            {
+                StatusCode = 0,
+                ResponseTimeMs = (int)sw.ElapsedMilliseconds,
+                IsError = true,
+                ErrorMessage = ex.Message
+            };
         }
-
-        watch.Stop();
-
-        return new PingResult
-        {
-            Url = url,
-            ResponseTimeMs = watch.ElapsedMilliseconds,
-            StatusCode = status,
-            IsError = error != null,
-            ErrorMessage = error,
-            Timestamp = DateTime.UtcNow
-        };
     }
 }

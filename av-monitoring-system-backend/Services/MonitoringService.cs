@@ -35,7 +35,7 @@ public class MonitoringService
             if (secondsSinceLast >= ep.IntervalSeconds)
             {
                 // Ping endpoint
-                var result = await _ping.PingAsync(ep.Url);
+                var result = await _ping.PingAsync(ep);
 
                 // Update endpoint state
                 ep.LastPingUtc = DateTime.UtcNow;
@@ -46,6 +46,7 @@ public class MonitoringService
                 {
                     PartitionKey = ep.RowKey,
                     RowKey = DateTime.UtcNow.Ticks.ToString(),
+                    Name = ep.Name,
                     Url = ep.Url,
                     StatusCode = result.StatusCode,
                     ResponseTimeMs = result.ResponseTimeMs,

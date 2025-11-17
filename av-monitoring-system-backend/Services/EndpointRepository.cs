@@ -1,7 +1,9 @@
 ﻿using AVMonitoring.Functions.Models;
 using AVMonitoring.Functions.Options;
+using Azure;
 using Azure.Data.Tables;
 using Microsoft.Extensions.Options;
+using System.Collections.Concurrent;
 
 namespace AVMonitoring.Functions.Services;
 
@@ -28,6 +30,24 @@ public class EndpointRepository
             list.Add(item);
 
         return list;
+    }
+
+    public async Task<MonitoredEndpointEntity?> GetByIdAsync(string id)
+    {
+        try
+        {
+            var entity = await _table.GetEntityAsync<MonitoredEndpointEntity>("Endpoint", id);
+            return entity.Value;
+        }
+        catch (RequestFailedException)
+        {
+            return null;
+        }
+    }
+
+    public Task DeleteAsync(string partitionKey, string rowKey)
+    {
+        return _table.DeleteEntityAsync(partitionKey, rowKey);
     }
 }
 

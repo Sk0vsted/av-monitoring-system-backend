@@ -7,7 +7,7 @@ public class MonitoringLogEntity : ITableEntity
 {
     public string PartitionKey { get; set; } = string.Empty;
     public string RowKey { get; set; } = DateTime.UtcNow.Ticks.ToString();
-
+    public string Name { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
     public int StatusCode { get; set; }
     public long ResponseTimeMs { get; set; }

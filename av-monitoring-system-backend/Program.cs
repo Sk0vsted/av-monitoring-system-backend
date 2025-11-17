@@ -2,7 +2,9 @@ using AVMonitoring.Functions.Options;
 using AVMonitoring.Functions.Services;
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -11,6 +13,8 @@ using Microsoft.Extensions.Options;
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
+
+builder.UseMiddleware<CorsMiddleware>();
 
 // Bind strongly typed configuration
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Storage"));
