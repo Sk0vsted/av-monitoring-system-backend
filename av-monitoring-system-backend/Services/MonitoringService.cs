@@ -52,7 +52,8 @@ public class MonitoringService
                     ResponseTimeMs = result.ResponseTimeMs,
                     IsError = result.IsError,
                     ErrorMessage = result.ErrorMessage,
-                    PingedAtUtc = DateTime.UtcNow
+                    PingedAtUtc = DateTime.UtcNow,
+                    Method = ep.Method,
                 });
             }
         }

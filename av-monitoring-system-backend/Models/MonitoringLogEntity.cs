@@ -16,4 +16,5 @@ public class MonitoringLogEntity : ITableEntity
     public DateTime PingedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTimeOffset? Timestamp { get; set; }
     public ETag ETag { get; set; }
+    public string Method { get; set; } = "GET";
 }
