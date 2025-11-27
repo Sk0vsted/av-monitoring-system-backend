@@ -12,7 +12,6 @@ public class MonitoringLogEntity : ITableEntity
     public int StatusCode { get; set; }
     public long ResponseTimeMs { get; set; }
     public bool IsError { get; set; }
-    public string? ErrorMessage { get; set; }
     public DateTime PingedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTimeOffset? Timestamp { get; set; }
     public ETag ETag { get; set; }

@@ -31,12 +31,13 @@ public class MonitoringLogRepository
 
     public async Task DeleteOlderThanAsync(DateTime cutoff)
     {
-        // Table Storage supports up to 100 operations per transaction
-        var batch = new List<TableTransactionAction>();
-        var cutoffTicks = cutoff.Ticks.ToString();
+        var filter = TableClient.CreateQueryFilter<MonitoringLogEntity>(
+            x => x.PingedAtUtc < cutoff
+        );
 
-        await foreach (var entity in _table.QueryAsync<MonitoringLogEntity>(
-            x => string.Compare(x.RowKey, cutoffTicks) < 0))
+        var batch = new List<TableTransactionAction>();
+
+        await foreach (var entity in _table.QueryAsync<MonitoringLogEntity>(filter))
         {
             batch.Add(new TableTransactionAction(TableTransactionActionType.Delete, entity));
 
@@ -62,6 +63,52 @@ public class MonitoringLogRepository
 
         return list
             .OrderByDescending(x => x.PingedAtUtc)
+            .ToList();
+    }
+
+    public async Task DeleteAllAsync()
+    {
+        var partitionKeys = new HashSet<string>();
+
+        await foreach (var entity in _table.QueryAsync<MonitoringLogEntity>())
+        {
+            partitionKeys.Add(entity.PartitionKey);
+        }
+
+        foreach (var pk in partitionKeys)
+        {
+            var batch = new List<TableTransactionAction>();
+
+            await foreach (var entity in _table.QueryAsync<MonitoringLogEntity>(e => e.PartitionKey == pk))
+            {
+                batch.Add(new TableTransactionAction(TableTransactionActionType.Delete, entity));
+
+                if (batch.Count == 100)
+                {
+                    await _table.SubmitTransactionAsync(batch);
+                    batch.Clear();
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                await _table.SubmitTransactionAsync(batch);
+            }
+        }
+    }
+
+    public async Task<List<MonitoringLogEntity>> GetLastNAsync(string endpointId, int count)
+    {
+        var list = new List<MonitoringLogEntity>();
+
+        await foreach (var entity in _table.QueryAsync<MonitoringLogEntity>(x => x.PartitionKey == endpointId))
+        {
+            list.Add(entity);
+        }
+
+        return list
+            .OrderByDescending(x => x.PingedAtUtc)
+            .Take(count)
             .ToList();
     }
 }

@@ -19,5 +19,9 @@ public class MonitoredEndpointEntity : ITableEntity
     public string? AuthHeader { get; set; }
     public DateTimeOffset? Timestamp { get; set; }
     public ETag ETag { get; set; }
+    public bool IsInCooldown { get; set; }
+    public DateTime? CooldownUntilUtc { get; set; }
+    public int ConsecutiveCriticalErrors { get; set; }
+
 }
 

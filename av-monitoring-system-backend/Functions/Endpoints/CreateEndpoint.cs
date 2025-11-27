@@ -39,23 +39,9 @@ public class CreateEndpoint
             return bad;
         }
 
-        var entity = new MonitoredEndpointEntity
-        {
-            Name = body.Name,
-            Url = body.Url,
-            Method = body.Method ?? "GET",
-            IntervalSeconds = body.IntervalSeconds,
-            CreatedUtc = DateTime.UtcNow,
-
-            LastPingUtc = DateTime.SpecifyKind(DateTime.UnixEpoch, DateTimeKind.Utc),
-
-            HeadersJson = body.Headers != null
-                ? JsonSerializer.Serialize(body.Headers)
-                : null,
-
-            BodyJson = body.Body,
-            AuthHeader = body.AuthHeader
-        };
+        var entity = EndpointMapper.ToEntity(body);
+        entity.PartitionKey = "Endpoint";
+        entity.RowKey = Guid.NewGuid().ToString();
 
         await _repo.AddAsync(entity);
 

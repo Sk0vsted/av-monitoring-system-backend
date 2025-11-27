@@ -17,10 +17,7 @@ namespace AVMonitoring.Functions.Functions
         [Function("CleanupLogs")]
         public async Task Run([TimerTrigger("0 0 2 * * *")] TimerInfo timer)
         {
-            var retentionDays = 7;
-            var cutoff = DateTime.UtcNow.AddDays(-retentionDays);
-
-            await _repo.DeleteOlderThanAsync(cutoff);
+            await _repo.DeleteAllAsync();
         }
     }
 }

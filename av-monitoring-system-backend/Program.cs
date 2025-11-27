@@ -52,5 +52,7 @@ builder.Services.AddSingleton<IHttpPingService, HttpPingService>();
 builder.Services.AddSingleton<EndpointRepository>();
 builder.Services.AddSingleton<MonitoringService>();
 builder.Services.AddSingleton<MonitoringLogRepository>();
+builder.Services.AddSingleton<IncidentRepository>();
+builder.Services.AddSingleton<IncidentEngine>();
 
 builder.Build().Run();
