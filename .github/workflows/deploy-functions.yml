@@ -1,18 +1,15 @@
-name: Deploy Azure Functions
+name: Deploy Flex Consumption Function App
 
 on:
   push:
-    branches:
-      - master
-      - main
-  workflow_dispatch:
+    branches: ["main", "master"]
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup .NET
@@ -20,18 +17,12 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
-      - name: Restore dependencies
-        run: dotnet restore ./av-monitoring-system-backend/AVMonitoring.Functions.csproj
+      - name: Publish app
+        run: dotnet publish ./av-monitoring-system-backend/av-monitoring-system-backend/AVMonitoring.Functions.csproj -c Release -o ./output
 
-      - name: Build project
-        run: dotnet build ./av-monitoring-system-backend/AVMonitoring.Functions.csproj --configuration Release --no-restore
-
-      - name: Publish project
-        run: dotnet publish ./av-monitoring-system-backend/AVMonitoring.Functions.csproj --configuration Release --output ./publish
-
-      - name: Deploy to Azure Function App
-        uses: Azure/functions-action@v1
+      - name: Deploy to Azure
+        uses: Azure/functions-action@v2
         with:
-          app-name: av-monitoring-system-app-ekbgemath6b2hrfr
-          package: ./publish
+          app-name: <DIN_FLEX_APP_NAME>
+          package: "./output"
           publish-profile: ${{ secrets.AZUREAPPPUBLISHPROFILE }}
