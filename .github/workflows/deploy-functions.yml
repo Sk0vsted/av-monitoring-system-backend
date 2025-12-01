@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - main
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -25,17 +26,15 @@ jobs:
       - name: Zip publish folder
         run: cd publish && zip -r ../app.zip .
 
-      - name: Azure Login using publish profile
+      - name: Azure Login
         uses: azure/login@v1
         with:
-          publish-profile: ${{ secrets.AZUREAPPPUBLISHPROFILE }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy ZIP to Flex Consumption
-        uses: azure/CLI@v1
-        with:
-          azcliversion: 2.52.0
-          inlineScript: |
-            az functionapp deployment source config-zip \
-              --resource-group av-monitoring-system \
-              --name av-monitoring-system-app \
-              --src app.zip
+      - name: Deploy to Flex Consumption
+        run: |
+          az functionapp deploy \
+            --resource-group av-monitoring-system \
+            --name av-monitoring-system-app \
+            --src-path app.zip \
+            --type zip
