@@ -3,16 +3,15 @@ name: Deploy Flex Consumption Function App
 on:
   push:
     branches:
-      - master
       - main
-  workflow_dispatch:
+      - master
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup .NET
@@ -20,21 +19,12 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Publish Functions project
+      - name: Publish project (no zip!)
         run: dotnet publish ./av-monitoring-system-backend/AVMonitoring.Functions.csproj -c Release -o ./publish
 
-      - name: Zip publish output
-        run: cd publish && zip -r ../app.zip .
-
-      - name: Azure Login (Service Principal)
-        uses: azure/login@v1
+      - name: Deploy with Azure Function Build Service
+        uses: Azure/functions-action@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy to Flex Consumption
-        run: |
-          az functionapp deploy \
-            --resource-group av-monitoring-system \
-            --name av-monitoring-system-app \
-            --src-path app.zip \
-            --type zip
+          app-name: av-monitoring-system-app
+          publish-profile: ${{ secrets.AZUREAPPPUBLISHPROFILE }}
+          package: ./publish
