@@ -1,11 +1,12 @@
 ﻿using System.Net;
 using System.Text.Json;
 using AVMonitoring.Functions.Models;
+using AVMonitoring.Functions.Models.Endpoints;
 using AVMonitoring.Functions.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 
-namespace AVMonitoring.Functions.Functions;
+namespace AVMonitoring.Functions.Functions.Endpoints;
 
 public class CreateEndpoint
 {
@@ -38,12 +39,9 @@ public class CreateEndpoint
             return bad;
         }
 
-        var entity = new MonitoredEndpointEntity
-        {
-            Url = body.Url,
-            IntervalSeconds = body.IntervalSeconds,
-            LastPingUtc = DateTime.SpecifyKind(DateTime.UnixEpoch, DateTimeKind.Utc)
-        };
+        var entity = EndpointMapper.ToEntity(body);
+        entity.PartitionKey = "Endpoint";
+        entity.RowKey = Guid.NewGuid().ToString();
 
         await _repo.AddAsync(entity);
 
