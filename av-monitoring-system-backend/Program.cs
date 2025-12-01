@@ -2,57 +2,61 @@ using AVMonitoring.Functions.Options;
 using AVMonitoring.Functions.Services;
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
-using Microsoft.AspNetCore.Cors.Infrastructure;
-using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
-var builder = FunctionsApplication.CreateBuilder(args);
-
-builder.ConfigureFunctionsWebApplication();
-
-builder.UseMiddleware<CorsMiddleware>();
-
-// Bind strongly typed configuration
-builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Storage"));
-
-// HttpClient for service pinging
-builder.Services.AddHttpClient("MonitoringHttpClient")
-    .ConfigureHttpClient(client =>
+var host = new HostBuilder()
+    .ConfigureFunctionsWorkerDefaults() // <-- Kritisk: dette er hele “isolated worker” modellen
+    .ConfigureAppConfiguration((context, config) =>
     {
-        client.Timeout = TimeSpan.FromSeconds(10);
-    });
+        config.AddEnvironmentVariables();
+    })
+    .ConfigureServices((context, services) =>
+    {
+        var config = context.Configuration;
 
-// TableServiceClient via Options
-builder.Services.AddSingleton<TableServiceClient>(sp =>
-{
-    var opts = sp.GetRequiredService<IOptions<StorageOptions>>().Value;
-    return new TableServiceClient(opts.ConnectionString);
-});
+        // Bind strongly typed storage settings
+        services.Configure<StorageOptions>(config.GetSection("Storage"));
 
-// BlobServiceClient via Options
-builder.Services.AddSingleton<BlobServiceClient>(sp =>
-{
-    var opts = sp.GetRequiredService<IOptions<StorageOptions>>().Value;
-    return new BlobServiceClient(opts.ConnectionString);
-});
+        // HttpClient til ping
+        services.AddHttpClient("MonitoringHttpClient")
+            .ConfigureHttpClient(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(10);
+            });
 
-// BlobContainerClient for error logs
-builder.Services.AddSingleton<BlobContainerClient>(sp =>
-{
-    var opts = sp.GetRequiredService<IOptions<StorageOptions>>().Value;
-    var svc = sp.GetRequiredService<BlobServiceClient>();
-    return svc.GetBlobContainerClient(opts.ErrorContainer);
-});
+        // TableServiceClient
+        services.AddSingleton<TableServiceClient>(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<StorageOptions>>().Value;
+            return new TableServiceClient(opts.ConnectionString);
+        });
 
-builder.Services.AddSingleton<IHttpPingService, HttpPingService>();
-builder.Services.AddSingleton<EndpointRepository>();
-builder.Services.AddSingleton<MonitoringService>();
-builder.Services.AddSingleton<MonitoringLogRepository>();
-builder.Services.AddSingleton<IncidentRepository>();
-builder.Services.AddSingleton<IncidentEngine>();
+        // BlobServiceClient
+        services.AddSingleton<BlobServiceClient>(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<StorageOptions>>().Value;
+            return new BlobServiceClient(opts.ConnectionString);
+        });
 
-builder.Build().Run();
+        // BlobContainerClient for errors
+        services.AddSingleton<BlobContainerClient>(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<StorageOptions>>().Value;
+            var svc = sp.GetRequiredService<BlobServiceClient>();
+            return svc.GetBlobContainerClient(opts.ErrorContainer);
+        });
+
+        // Custom services
+        services.AddSingleton<IHttpPingService, HttpPingService>();
+        services.AddSingleton<EndpointRepository>();
+        services.AddSingleton<MonitoringService>();
+        services.AddSingleton<MonitoringLogRepository>();
+        services.AddSingleton<IncidentRepository>();
+        services.AddSingleton<IncidentEngine>();
+    })
+    .Build();
+
+host.Run();
