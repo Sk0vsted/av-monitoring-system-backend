@@ -20,7 +20,7 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Publish project
-        run: dotnet publish ./av-monitoring-system-backend/av-monitoring-system-backend/AVMonitoring.Functions.csproj -c Release -o ./publish
+        run: dotnet publish ./av-monitoring-system-backend/AVMonitoring.Functions.csproj -c Release -o ./publish
 
       - name: Zip publish folder
         run: cd publish && zip -r ../app.zip .
