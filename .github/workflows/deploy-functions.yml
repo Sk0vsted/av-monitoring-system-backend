@@ -20,13 +20,13 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Publish project
+      - name: Publish Functions project
         run: dotnet publish ./av-monitoring-system-backend/AVMonitoring.Functions.csproj -c Release -o ./publish
 
-      - name: Zip publish folder
+      - name: Zip publish output
         run: cd publish && zip -r ../app.zip .
 
-      - name: Azure Login
+      - name: Azure Login (Service Principal)
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
