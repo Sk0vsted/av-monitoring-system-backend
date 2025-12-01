@@ -21,13 +21,13 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Restore dependencies
-        run: dotnet restore ./av-monitoring-system-backend/av-monitoring-system-backend/av-monitoring-system-backend/AVMonitoring.Functions.csproj
+        run: dotnet restore ./av-monitoring-system-backend/AVMonitoring.Functions.csproj
 
       - name: Build project
-        run: dotnet build ./av-monitoring-system-backend/av-monitoring-system-backend/av-monitoring-system-backend/AVMonitoring.Functions.csproj --configuration Release --no-restore
+        run: dotnet build ./av-monitoring-system-backend/AVMonitoring.Functions.csproj --configuration Release --no-restore
 
       - name: Publish project
-        run: dotnet publish ./av-monitoring-system-backend/av-monitoring-system-backend/av-monitoring-system-backend/AVMonitoring.Functions.csproj --configuration Release --output ./publish
+        run: dotnet publish ./av-monitoring-system-backend/AVMonitoring.Functions.csproj --configuration Release --output ./publish
 
       - name: Deploy to Azure Function App
         uses: Azure/functions-action@v1
