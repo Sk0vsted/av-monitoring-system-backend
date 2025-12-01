@@ -1,0 +1,36 @@
+name: Deploy Azure Functions
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore ./AVMonitoring.Functions/AVMonitoring.Functions.csproj
+
+      - name: Build project
+        run: dotnet build ./AVMonitoring.Functions/AVMonitoring.Functions.csproj --configuration Release --no-restore
+
+      - name: Publish project
+        run: dotnet publish ./AVMonitoring.Functions/AVMonitoring.Functions.csproj --configuration Release --output ./publish
+
+      - name: Deploy to Azure Function App
+        uses: Azure/functions-action@v1
+        with:
+          app-name: av-monitoring-system-app-ekbgemath6b2hrfr
+          package: ./publish
+          publish-profile: ${{ secrets.AZUREAPPPUBLISHPROFILE }}
