@@ -99,5 +99,16 @@ namespace AVMonitoring.Functions.Services
                 .OrderByDescending(x => x.CreatedUtc)
                 .ToList();
         }
+
+        public async Task<bool> HasIncidentOfTypeAsync(string partitionKey, string incidentType)
+        {
+            await foreach (var e in _table.QueryAsync<IncidentEntity>(x => x.PartitionKey == partitionKey))
+            {
+                if (e.IncidentType.Equals(incidentType, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
     }
 }

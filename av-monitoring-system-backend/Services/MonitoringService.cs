@@ -36,23 +36,31 @@ namespace AVMonitoring.Functions.Services
 
             foreach (var ep in endpoints)
             {
-                // Skip hvis endpoint er i cooldown
                 if (ep.IsInCooldown && ep.CooldownUntilUtc > now)
                     continue;
 
-                // Første ping: LastPingUtc = 1970 → ping direkte
                 var secondsSinceLast = (now - ep.LastPingUtc).TotalSeconds;
 
                 if (secondsSinceLast < ep.IntervalSeconds)
                     continue;
 
-                // Ping
-                var result = await _ping.PingAsync(ep);
+                PingResult result;
+                try
+                {
+                    result = await _ping.PingAsync(ep);
+                }
+                catch (Exception ex)
+                {
+                    result = new PingResult
+                    {
+                        StatusCode = 0,
+                        ResponseTimeMs = 0,
+                        IsError = true
+                    };
+                }
 
-                // Opdater
                 ep.LastPingUtc = now;
 
-                // === Critical error handling ===
                 if (result.IsError || result.StatusCode >= 500)
                 {
                     ep.ConsecutiveCriticalErrors++;
@@ -65,14 +73,12 @@ namespace AVMonitoring.Functions.Services
                 }
                 else
                 {
-                    // Reset når ping lykkes
                     ep.ConsecutiveCriticalErrors = 0;
                     ep.IsInCooldown = false;
                 }
 
                 await _endpointRepo.UpsertAsync(ep);
 
-                // Log
                 var log = new MonitoringLogEntity
                 {
                     PartitionKey = ep.RowKey,
@@ -88,10 +94,9 @@ namespace AVMonitoring.Functions.Services
 
                 await _logRepo.AddAsync(log);
 
-                // Incident analyse
                 var recentLogs = await _logRepo.GetLastNAsync(ep.RowKey, 25);
 
-                var incidents = _incidentEngine.Analyze(recentLogs);
+                var incidents = await _incidentEngine.AnalyzeAsync(ep.RowKey, recentLogs);
 
                 foreach (var inc in incidents)
                 {

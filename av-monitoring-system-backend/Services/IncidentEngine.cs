@@ -1,16 +1,22 @@
-﻿using System;
+﻿using AVMonitoring.Functions.Models;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using AVMonitoring.Functions.Models;
 
 namespace AVMonitoring.Functions.Services
 {
     public class IncidentEngine
     {
+        private readonly IncidentRepository _incidentRepo;
+        public IncidentEngine(IncidentRepository incidentRepo)
+        {
+            _incidentRepo = incidentRepo;
+        }
         // Public API
-        public List<IncidentRecord> Analyze(List<MonitoringLogEntity> logs)
+        public async Task<List<IncidentRecord>> AnalyzeAsync(string partitionKey, List<MonitoringLogEntity> logs)
         {
             var incidents = new List<IncidentRecord>();
 
@@ -21,15 +27,19 @@ namespace AVMonitoring.Functions.Services
                 .OrderBy(l => l.PingedAtUtc)
                 .ToList();
 
-            if (TryHttpError(logs, out var httpErrorIncident))
+            // HTTP ERROR (DEDUP)
+            var httpError = await TryHttpErrorAsync(logs, partitionKey);
+            if (httpError != null)
             {
-                incidents.Add(httpErrorIncident);
+                incidents.Add(httpError);
                 return incidents;
             }
 
+            // LATENCY (NO DEDUP)
             if (TryLatencyRegression(logs, out var latencyIncident))
                 incidents.Add(latencyIncident);
 
+            // FLAPPING (NO DEDUP)
             if (TryFlapping(logs, out var flappingIncident))
                 incidents.Add(flappingIncident);
 
@@ -37,36 +47,32 @@ namespace AVMonitoring.Functions.Services
         }
 
         // Incident #0: HTTP Error
-        private bool TryHttpError(List<MonitoringLogEntity> logs, out IncidentRecord incident)
+        private async Task<IncidentRecord?> TryHttpErrorAsync(List<MonitoringLogEntity> logs, string partitionKey)
         {
-            incident = null;
-
             var last = logs.Last();
 
-            // Error conditions
             bool isError =
                 last.IsError ||
                 last.StatusCode < 200 ||
                 last.StatusCode >= 400;
 
             if (!isError)
-                return false;
+                return null;
 
-            incident = new IncidentRecord
+            bool alreadyExists = await _incidentRepo.HasIncidentOfTypeAsync(partitionKey, "HttpError");
+            if (alreadyExists)
+                return null;
+
+            return new IncidentRecord
             {
                 IncidentType = "HttpError",
-                Severity = last.StatusCode >= 500 || last.StatusCode == 0
-                    ? "Critical"
-                    : "Warning",
+                Severity = last.StatusCode >= 500 || last.StatusCode == 0 ? "Critical" : "Warning",
                 Message = $"HTTP error detected: Status {last.StatusCode}.",
                 ValueNow = last.StatusCode,
                 ValueBaseline = 200,
                 CreatedUtc = DateTime.UtcNow
             };
-
-            return true;
         }
-
 
         //Incident #1: Latency Regression
         private bool TryLatencyRegression(List<MonitoringLogEntity> logs, out IncidentRecord inc)
