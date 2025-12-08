@@ -13,7 +13,7 @@ public static class EndpointMapper
             Method = req.Method,
             IntervalSeconds = req.IntervalSeconds,
             CreatedUtc = DateTime.UtcNow,
-            HeadersJson = req.Headers != null ? JsonSerializer.Serialize(req.Headers) : null,
+            HeadersJson = !string.IsNullOrWhiteSpace(req.HeadersJson) ? req.HeadersJson : null,
             BodyJson = req.Body,
             AuthHeader = req.AuthHeader
         };

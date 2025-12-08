@@ -55,8 +55,8 @@ public class UpdateEndpoint
         if (body.IntervalSeconds.HasValue)
             existing.IntervalSeconds = body.IntervalSeconds.Value;
 
-        if (body.Headers != null)
-            existing.HeadersJson = JsonSerializer.Serialize(body.Headers);
+        if (!string.IsNullOrWhiteSpace(body.HeadersJson))
+            existing.HeadersJson = body.HeadersJson;
 
         if (body.Body != null)
             existing.BodyJson = body.Body;

@@ -52,10 +52,10 @@ var host = new HostBuilder()
         // Custom services
         services.AddSingleton<IHttpPingService, HttpPingService>();
         services.AddSingleton<EndpointRepository>();
-        services.AddSingleton<MonitoringService>();
         services.AddSingleton<MonitoringLogRepository>();
         services.AddSingleton<IncidentRepository>();
         services.AddSingleton<IncidentEngine>();
+        services.AddSingleton<MonitoringService>();
     })
     .Build();
 
