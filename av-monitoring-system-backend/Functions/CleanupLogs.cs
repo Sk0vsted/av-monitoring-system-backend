@@ -1,23 +1,36 @@
-﻿using System;
-using System.Threading.Tasks;
-using AVMonitoring.Functions.Services;
+﻿using AVMonitoring.Functions.Services;
 using Microsoft.Azure.Functions.Worker;
 
-namespace AVMonitoring.Functions.Functions
+public class CleanupLogs
 {
-    public class CleanupLogs
+    private readonly MonitoringLogRepository _logRepo;
+    private readonly MonitoringAnalyticsService _analyticsService;
+    private readonly MonitoringAnalyticsRepository _analyticsRepo;
+    private readonly EndpointRepository _endpointRepo;
+
+    public CleanupLogs(
+        MonitoringLogRepository logRepo,
+        MonitoringAnalyticsService analyticsService,
+        MonitoringAnalyticsRepository analyticsRepo,
+        EndpointRepository endpointRepo)
     {
-        private readonly MonitoringLogRepository _repo;
+        _logRepo = logRepo;
+        _analyticsService = analyticsService;
+        _analyticsRepo = analyticsRepo;
+        _endpointRepo = endpointRepo;
+    }
 
-        public CleanupLogs(MonitoringLogRepository repo)
-        {
-            _repo = repo;
-        }
+    [Function("CleanupLogs")]
+    public async Task Run([TimerTrigger("0 0 2 * * *")] TimerInfo timer)
+    {
+        var endpoints = await _endpointRepo.GetAllAsync();
 
-        [Function("CleanupLogs")]
-        public async Task Run([TimerTrigger("0 0 2 * * *")] TimerInfo timer)
+        foreach (var endpoint in endpoints)
         {
-            await _repo.DeleteAllAsync();
+            var daily = await _analyticsService.BuildGlobalDailyAnalyticsAsync();
+
+            await _analyticsRepo.SaveDailyAnalyticsAsync(daily);
         }
+        await _logRepo.DeleteAllAsync();
     }
 }
