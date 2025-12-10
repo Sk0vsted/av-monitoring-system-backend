@@ -8,18 +8,33 @@ namespace AVMonitoring.Functions.Functions
 {
     public class CleanupLogsManual
     {
-        private readonly MonitoringLogRepository _repo;
+        private readonly MonitoringLogRepository _logRepo;
+        private readonly MonitoringAnalyticsService _analyticsService;
+        private readonly MonitoringAnalyticsRepository _analyticsRepo;
+        private readonly EndpointRepository _endpointRepo;
 
-        public CleanupLogsManual(MonitoringLogRepository repo)
+        public CleanupLogsManual(
+        MonitoringLogRepository logRepo,
+        MonitoringAnalyticsService analyticsService,
+        MonitoringAnalyticsRepository analyticsRepo,
+        EndpointRepository endpointRepo)
         {
-            _repo = repo;
+            _logRepo = logRepo;
+            _analyticsService = analyticsService;
+            _analyticsRepo = analyticsRepo;
+            _endpointRepo = endpointRepo;
         }
 
         [Function("CleanupLogsManual")]
         public async Task<HttpResponseData> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
         {
-            await _repo.DeleteAllAsync();
+            var endpoints = await _endpointRepo.GetAllAsync();
+
+            var daily = await _analyticsService.BuildGlobalDailyAnalyticsAsync();
+            await _analyticsRepo.SaveDailyAnalyticsAsync(daily);
+
+            await _logRepo.DeleteAllAsync();
 
             var res = req.CreateResponse(System.Net.HttpStatusCode.OK);
             await res.WriteStringAsync("All logs have been deleted.");

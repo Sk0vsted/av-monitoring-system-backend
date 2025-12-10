@@ -56,6 +56,8 @@ var host = new HostBuilder()
         services.AddSingleton<IncidentRepository>();
         services.AddSingleton<IncidentEngine>();
         services.AddSingleton<MonitoringService>();
+        services.AddSingleton<MonitoringAnalyticsService>();
+        services.AddSingleton<MonitoringAnalyticsRepository>();
     })
     .Build();
 

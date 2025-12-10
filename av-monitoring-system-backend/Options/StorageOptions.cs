@@ -7,5 +7,7 @@
         public string EndpointsTable { get; set; } = "Endpoints";
         public string ErrorContainer { get; set; } = "errors";
         public string IncidentsTable { get; set; } = "Incidents";
+
+        public string AnalyticsTable { get; set; } = "DailyAnalytics";
     }
 }
