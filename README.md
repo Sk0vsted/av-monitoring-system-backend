@@ -63,7 +63,7 @@ Backenden er en Azure Functions (.NET Isolated) løsning og er derfor mest stabi
 Bemærk: CLI-kørsel kan være mulig, men er **ikke** den primære understøttede lokale workflow for dette projekt!
 
 ### Installation
-Det anbefales at starte backenden via Visual Studio (Se "Opstart af Backend" i projektmappen). Alternativt kan dependencies hentes via:
+Det anbefales at starte backenden via Visual Studio (Gå til "Opsætning" -> "Opsætning af AV-Monitoring-System-Backend.pdf" i projektmappen). Alternativt kan dependencies hentes via:
 
 ```bash
 dotnet restore
