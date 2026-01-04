@@ -80,28 +80,26 @@ namespace AVMonitoring.Functions.Services
             inc = null;
 
             var last5 = logs.TakeLast(5).ToList();
-            var baseline = Median(last5.Take(4).Select(x => (double)x.ResponseTimeMs).ToList());
             var latest = last5.Last().ResponseTimeMs;
 
-            if (baseline < 200)
+            var baseline = CalculateDynamicBaseline(logs);
+            if (baseline <= 0)
                 return false;
 
-            if (latest < 1000)
+            var (warningThreshold, criticalThreshold) =
+                CalculateLatencyThresholds(baseline);
+
+            if (latest < warningThreshold)
                 return false;
 
-            var pct = ((latest - baseline) / baseline) * 100.0;
-
-            if (latest < baseline * 2.0)
-                return false;
-
-            int trending = last5.Count(l => l.ResponseTimeMs > baseline * 1.5);
+            int trending = last5.Count(l => l.ResponseTimeMs > warningThreshold);
             if (trending < 3)
                 return false;
 
             inc = new IncidentRecord
             {
                 IncidentType = "LatencyRegression",
-                Severity = latest > baseline * 4 ? "Critical" : "Warning",
+                Severity = latest > criticalThreshold ? "Critical" : "Warning",
                 Message = $"Latency regression: baseline {baseline:F0}ms → {latest:F0}ms.",
                 ValueNow = latest,
                 ValueBaseline = baseline,
@@ -145,6 +143,33 @@ namespace AVMonitoring.Functions.Services
             return values.Count % 2 == 0
                 ? (values[mid - 1] + values[mid]) / 2.0
                 : values[mid];
+        }
+
+        private double CalculateDynamicBaseline(List<MonitoringLogEntity> logs)
+        {
+            var stableLogs = logs
+                .Where(l => !l.IsError && l.ResponseTimeMs > 0)
+                .TakeLast(20)
+                .Select(l => (double)l.ResponseTimeMs)
+                .ToList();
+
+            if (stableLogs.Count < 5)
+                return 0;
+
+            return Median(stableLogs);
+        }
+
+        private (double warning, double critical) CalculateLatencyThresholds(double baseline)
+        {
+            if (baseline <= 0)
+                return (0, 0);
+
+            // Hurtige endpoints = strengere
+            if (baseline < 300)
+                return (baseline * 1.8, baseline * 3.0);
+
+            // Langsommere endpoints = mere tolerance
+            return (baseline * 1.5, baseline * 2.5);
         }
     }
 }

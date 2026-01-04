@@ -8,7 +8,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults() // <-- Kritisk: dette er hele “isolated worker” modellen
+    .ConfigureFunctionsWorkerDefaults(builder => // <-- Kritisk: dette er hele “isolated worker” modellen
+    {
+        builder.UseMiddleware<JwtAuthMiddleware>();
+    })
     .ConfigureAppConfiguration((context, config) =>
     {
         config.AddEnvironmentVariables();
@@ -26,6 +29,16 @@ var host = new HostBuilder()
             {
                 client.Timeout = TimeSpan.FromSeconds(10);
             });
+
+        services.AddSingleton<JwtTokenValidator>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+
+            var domain = config.GetValue<string>("Auth0:Domain");
+            var audience = config.GetValue<string>("Auth0:Audience");
+
+            return new JwtTokenValidator(domain, audience);
+        });
 
         // TableServiceClient
         services.AddSingleton<TableServiceClient>(sp =>
