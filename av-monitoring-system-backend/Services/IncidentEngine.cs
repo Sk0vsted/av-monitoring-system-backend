@@ -166,10 +166,10 @@ namespace AVMonitoring.Functions.Services
 
             // Hurtige endpoints = strengere
             if (baseline < 300)
-                return (baseline * 1.8, baseline * 3.0);
+                return (baseline * 2.5, baseline * 4.0);
 
             // Langsommere endpoints = mere tolerance
-            return (baseline * 1.5, baseline * 2.5);
+            return (baseline * 2.0, baseline * 3.0);
         }
     }
 }
